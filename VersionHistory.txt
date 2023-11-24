@@ -11,7 +11,7 @@ Alpha V1.0
 	
 Current topology:
 
-	      N0         N5
+	N0         N5
     N1  |          |  N6
       \ |          | /
   N2-- S1----------S2 --N7
