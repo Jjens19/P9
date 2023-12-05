@@ -62,6 +62,7 @@ utility_threshold = 1 # How big should a change be before a reward/penalty is gi
 utility_reward = 5    # Size of reward/penalty
 
 sleep_time = 0.01 # Delay between checking subprocess buffer
+cwnd_list = ""
 
 # ------------- Functions ----------------------------------
 
@@ -126,7 +127,7 @@ def perform_action(process, action):
     	cwnd = actions[action](cwnd) * 512 # Multiply with minimum size of packets ...
     	cwnd = int(cwnd // 1) # Only whole amounts of bytes
     	if cwnd == 0: cwnd = 1
-    	
+    	cwnd_list += f"{cwnd}\n"
     	with open(cwnd_path, 'w') as file:
     		file.write(f"{cwnd}")
 
@@ -213,7 +214,13 @@ for episode in range(episodes):
     
     # Print completed epochs
     print(f"Episode {episode} complete, reward of: {reward_episode}")
-
+    
+    with open(cwnd_path, 'w') as file:
+    	
+    	file.write(f"{cwnd_start}")
+    	
+    cwnd_list = ""
+	
 np.save(f"{model_folder_path}/{model_name}.npy", q_matrix)
 print(q_matrix)
 print("Reward over episodes")
