@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
     ApplicationContainer app1 = onoff0.Install(terminals.Get(9));
     app1.Get(0)->TraceConnectWithoutContext("Tx", MakeCallback(&TxPacketsTrace));
     app1.Start(Seconds(0.1));
-    app1.Stop(Seconds(10.0));
+    app1.Stop(Seconds(90.0));
 
     ApplicationContainer sinkApp = sink.Install(terminals.Get(0));
     sinkApp.Get(0)->TraceConnectWithoutContext("Rx", MakeCallback(&RxPacketsTrace));
