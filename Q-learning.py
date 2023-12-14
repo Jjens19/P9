@@ -24,7 +24,7 @@ os.makedirs(model_folder_path, exist_ok=True)
 
 # Training duration
 sample_frequency = 1 # Amount of steps/samples per second
-episodes = 200
+episodes = 300
 steps_max = 400 * sample_frequency
 
 # Learning hyperparameterss
@@ -99,15 +99,15 @@ def get_next_state(process):
     
     return (state_send, state_acks, state_rtt), (n_bytes, ack_perc, finished)
 
-def get_reward(n_bytes, ack_perc, rtt): 
+def get_reward(n_bytes, ack_perc, state_rtt): 
     # Declare utility as global... otherwise errors
     global utility
     
     if n_bytes == 0: n_bytes = 1
     if ack_perc == 0: ack_perc = 1
-    if rtt == 0: rtt = 2
     
-    utility_new = (np.log2(n_bytes) * reward_factor_bytes - np.log2(rtt) * reward_factor_rtt) #* ack_perc 
+    
+    utility_new = (np.log2(n_bytes) * reward_factor_bytes - state_rtt * reward_factor_rtt) #* ack_perc 
 
     reward = 0
     
