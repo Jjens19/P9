@@ -6,7 +6,7 @@ import subprocess
 # ------------- CONFIG ------------------------------------
 
 # MODEL NAME <--------------------- 
-model_name = "v0.1"
+model_name = "test4"
 
 
 
@@ -16,7 +16,7 @@ ns3_script = "scratch/test4.cc"
 
 # Path for CWND size file
 cwnd_path = "scratch/rate.txt"
-cwnd_start = 4         * 512 # Multiply with minimum CWND size
+cwnd_start = 1         * 512 # Multiply with minimum CWND size
 
 # Q-Model folder path
 model_folder_path = "models"
@@ -24,11 +24,11 @@ os.makedirs(model_folder_path, exist_ok=True)
 
 # Training duration
 sample_frequency = 1 # Amount of steps/samples per second
-episodes = 2
+episodes = 200
 steps_max = 400 * sample_frequency
 
 # Learning hyperparameterss
-learning_rate = 0.1
+learning_rate = 0.05
 discount_rate = 0.95
 
 # Exploration
@@ -58,12 +58,13 @@ reward_factor_bytes = 1 #
 reward_factor_rtt   = 1 # 
 #reward_factor_ack_ratio = 1
 utility = 0 
-utility_threshold = 1 # How big should a change be before a reward/penalty is given
+utility_threshold = 0.9 # How big should a change be before a reward/penalty is given
 utility_reward = 5    # Size of reward/penalty
 
 sleep_time = 0.01 # Delay between checking subprocess buffer
 cwnd_list = ""
-
+reward_list = ""
+state_list = ""
 # ------------- Functions ----------------------------------
 
 def get_next_state(process): 
@@ -73,7 +74,9 @@ def get_next_state(process):
     temp_list = reading.split('\n')[0].split(',')
     [send, acks, n_bytes, rtt] = [int(xx) for xx in temp_list] 
     
-    
+    global state_list
+    state_list += reading
+
     # Divide send and acks over period 
     send, acks = send/sample_frequency, acks/sample_frequency
 
@@ -116,33 +119,39 @@ def get_reward(n_bytes, ack_perc, rtt):
 
     return reward
 
-def perform_action(process, action): 
-    # Change CWND in file
-    if action != False: 
-    	cwnd = 0
-    
-    	with open(cwnd_path, 'r') as file:
-    		cwnd = float(file.read()) // 512 # Divide with minimum size of packets ...
-    
-    	cwnd = actions[action](cwnd) * 512 # Multiply with minimum size of packets ...
-    	cwnd = int(cwnd // 1) # Only whole amounts of bytes
-    	if cwnd == 0: cwnd = 1
-    	cwnd_list += f"{cwnd}\n"
-    	with open(cwnd_path, 'w') as file:
-    		file.write(f"{cwnd}")
+def perform_action(process, action):
+	global cwnd_list  
+	# Change CWND in file
+	if action != False:
+		cwnd = 0
+		with open(cwnd_path, 'r') as file:
+			cwnd = float(file.read()) // 512 # Divide with minimum size of packets ...
+			
+			cwnd = actions[action](cwnd) * 512 # Multiply with minimum size of packets ...
+			
+		cwnd = int(cwnd // 1) # Only whole amounts of bytes
+		if cwnd < 512: cwnd = 512
+		cwnd_list += f"{cwnd}\n"
+		with open(cwnd_path, 'w') as file:
+			file.write(f"{cwnd}")
+	else:
+		with open(cwnd_path, 'r') as file:
+			cwnd = int(file.read())
+			cwnd_list += f"{cwnd}\n"
 
     # Inform subprocess new episode is ready 
-    process.stdin.write(f"next state\n")
-    process.stdin.flush()
+	process.stdin.write(f"next state\n")
+	process.stdin.flush()
     
     # get new state 
-    new_state, (n_bytes, ack_perc, finished) = get_next_state(process) 
+	new_state, (n_bytes, ack_perc, finished) = get_next_state(process) 
     
-
+	
+	
     # Calculate reward based on new state 
-    reward = get_reward(n_bytes, ack_perc, state[2])
+	reward = get_reward(n_bytes, ack_perc, state[2])
 
-    return new_state, reward, finished
+	return new_state, reward, finished
 
 
 # ------------- Initialization -----------------------------
@@ -181,7 +190,7 @@ for episode in range(episodes):
     get_reward(n_bytes, ack_perc, state[2]) # Set utulity value
     
     for step in range(steps_max):
-    	print("step",step)
+    	#print("step",step)
     	
     	#Explore vs exploit
     	if random.uniform(0, 1) < exploration_rate:
@@ -200,6 +209,7 @@ for episode in range(episodes):
     	q_matrix[state, action] = q_matrix[state, action] *(1-learning_rate) + learning_rate * (reward + discount_rate * np.max(q_matrix[new_state])) 
     	state = new_state
     	reward_episode += reward
+    	reward_list += f"{reward}\n"
     	
     	if finished:
     		break
@@ -215,11 +225,18 @@ for episode in range(episodes):
     # Print completed epochs
     print(f"Episode {episode} complete, reward of: {reward_episode}")
     
-    with open(cwnd_path, 'w') as file:
+    with open("scratch/cwnd_log", 'w') as file:
     	
-    	file.write(f"{cwnd_start}")
+    	file.write(f"{cwnd_list}")
     	
     cwnd_list = ""
+    with open("scratch/reward_log.txt", 'w') as file:
+    	file.write(f"{reward_list}")
+    reward_list = ""
+    with open("scratch/state_log.txt", 'w') as file:
+    	file.write(f"{state_list}")
+    state_list = ""
+	
 	
 np.save(f"{model_folder_path}/{model_name}.npy", q_matrix)
 print(q_matrix)
