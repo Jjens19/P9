@@ -12,7 +12,7 @@ model_name = "test4"
 
 # PATHS
 # Path to your ns-3 script file
-ns3_script = "scratch/test4.cc"
+ns3_script = "scratch/q-training.cc"
 
 # Path for CWND size file
 cwnd_path = "scratch/rate.txt"
@@ -24,10 +24,10 @@ os.makedirs(model_folder_path, exist_ok=True)
 
 # Training duration
 sample_frequency = 1 # Amount of steps/samples per second
-episodes = 300
+episodes = 200
 steps_max = 400 * sample_frequency
 
-# Learning hyperparameterss
+# Learning hyperparameters
 learning_rate = 0.05
 discount_rate = 0.95
 
@@ -157,12 +157,7 @@ def perform_action(process, action):
 # ------------- Initialization -----------------------------
 
 # Load or create q-matrix
-try: 
-    q_matrix = np.load(f"{model_folder_path}/{model_name}.npy")
-    if q_matrix.shape != states + actions: 
-        exit("Loaded matrix does not fit state/action space") 
-
-except: q_matrix = np.zeros((states + (len(actions),))) 
+q_matrix = np.load(f"{model_folder_path}/{model_name}.npy")
 
 # Reset congestion window
 with open(cwnd_path, 'w') as file:
@@ -194,11 +189,11 @@ for episode in range(episodes):
     	
     	#Explore vs exploit
     	if random.uniform(0, 1) < exploration_rate:
-    		#Exploit
+    		#Explore
     		action = random.randrange(len(actions)) # Just pick a random action
     	else:
-    		#Explore
-    		action = np.argmax(q_matrix[(state)]) # Find highest rewarding action in q-matrix
+    		#Exploit
+    		action = np.argmax(q_matrix[state[0],state[1],state[2]])
     	
     	#print(state, action)
     	# Perform action and get rewards/info
@@ -206,7 +201,7 @@ for episode in range(episodes):
     	#print(new_state, reward)
     	
     	# Update variables
-    	q_matrix[state, action] = q_matrix[state, action] *(1-learning_rate) + learning_rate * (reward + discount_rate * np.max(q_matrix[new_state])) 
+    	q_matrix[state[0],state[1],state[2], action] = q_matrix[state[0],state[1],state[2], action] *(1-learning_rate) + learning_rate * (reward + discount_rate * np.max(q_matrix[new_state[0],new_state[1],new_state[2]]))
     	state = new_state
     	reward_episode += reward
     	reward_list += f"{reward}\n"
@@ -225,7 +220,7 @@ for episode in range(episodes):
     # Print completed epochs
     print(f"Episode {episode} complete, reward of: {reward_episode}")
     
-    with open("scratch/cwnd_log", 'w') as file:
+    with open("scratch/cwnd_log.txt", 'w') as file:
     	
     	file.write(f"{cwnd_list}")
     	
@@ -236,7 +231,7 @@ for episode in range(episodes):
     with open("scratch/state_log.txt", 'w') as file:
     	file.write(f"{state_list}")
     state_list = ""
-	
+    if episode % 20 == 19: np.save(f"{model_folder_path}/{model_name}.npy", q_matrix)
 	
 np.save(f"{model_folder_path}/{model_name}.npy", q_matrix)
 print(q_matrix)
