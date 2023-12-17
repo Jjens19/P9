@@ -118,8 +118,8 @@ int main(int argc, char *argv[])
     OnOffHelper onoff2 ("ns3::TcpSocketFactory", Address(InetSocketAddress(Ipv4Address("10.1.1.3"), port))); //Create destination for N2
     onoff2.SetConstantRate(DataRate("80kb/s"));
 
-    OnOffHelper onoff3 ("ns3::TcpSocketFactory", Address(InetSocketAddress(Ipv4Address("10.1.1.4"), port))); //Create destination for N3
-    onoff3.SetConstantRate(DataRate("80kb/s"));
+    OnOffHelper onoff3 ("ns3::UdpSocketFactory", Address(InetSocketAddress(Ipv4Address("10.1.1.4"), port))); //Create destination for N3
+    onoff3.SetConstantRate(DataRate("400kb/s"));
 
     OnOffHelper onoff4 ("ns3::TcpSocketFactory", Address(InetSocketAddress(Ipv4Address("10.1.1.5"), port))); //Create destination for N4
     onoff4.SetConstantRate(DataRate("80kb/s"));
