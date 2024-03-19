@@ -1,6 +1,7 @@
 #include "tcp-linux-reno.h"
 #include "ns3/log.h"
 #include "ns3/simulator.h"
+#include <fstream>
 
 namespace ns3
 {
